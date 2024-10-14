@@ -2,14 +2,13 @@ import os
 import threading
 import asyncio
 import time
-from bot.painter import painters
-from bot.mineclaimer import mine_claimer
-from bot.utils import Colors
-from bot.notpx import NotPx
-from telethon.sync import TelegramClient
+from bot.painter import painters  # Assuming bot.painter has the 'painters' function
+from bot.mineclaimer import mine_claimer  # Assuming bot.mineclaimer has the 'mine_claimer' function
+from bot.utils import Colors  # Assuming bot.utils has the 'Colors' class for colored output
+from bot.notpx import NotPx  # Assuming bot.notpx has the 'NotPx' client implementation
+from telethon.sync import TelegramClient  # Telethon client for Telegram interactions
 from datetime import datetime
 
-# Removed the Bot Token, Admin Chat ID, and License Key System
 # File structure for sessions
 SESSIONS_DIR = "sessions/"
 
@@ -25,6 +24,7 @@ def show_sessions():
         for i, session in enumerate(sessions, 1):
             print(f"{i}. {session[:-8]}")  # Display session name without .session extension
 
+# Function to add API credentials to env.txt file
 def add_api_credentials():
     api_id = input("Enter API ID: ")
     api_hash = input("Enter API Hash: ")
@@ -34,6 +34,7 @@ def add_api_credentials():
         f.write(f"API_HASH={api_hash}\n")
     print("[+] API credentials saved successfully in env.txt file.")
 
+# Function to reset API credentials
 def reset_api_credentials():
     env_path = os.path.join(os.path.dirname(__file__), 'env.txt')
     if os.path.exists(env_path):
@@ -42,6 +43,7 @@ def reset_api_credentials():
     else:
         print("[!] No env.txt file found. Nothing to reset.")
 
+# Function to reset a specific session
 def reset_session():
     if not os.path.exists(SESSIONS_DIR):
         os.mkdir(SESSIONS_DIR)
@@ -60,6 +62,7 @@ def reset_session():
     except (ValueError, IndexError):
         print("[!] Invalid choice. Please try again.")
 
+# Function to load API credentials from env.txt file
 def load_api_credentials():
     env_path = os.path.join(os.path.dirname(__file__), 'env.txt')
     if os.path.exists(env_path):
@@ -75,6 +78,7 @@ def load_api_credentials():
             return api_id, api_hash
     return None, None
 
+# Multithread starter for painters and mining
 def multithread_starter():
     print("Starting script...")
     if not os.path.exists(SESSIONS_DIR):
@@ -98,6 +102,7 @@ def multithread_starter():
         except Exception as e:
             print(f"[!] Error loading session '{session_name}', error: {e}")
 
+# Main process function to handle menu interaction
 def process():
     print(r"""{}
 ███████  █████  ██    ██  █████  ███    ██ 
