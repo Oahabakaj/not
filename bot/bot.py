@@ -91,11 +91,24 @@ def multithread_starter():
         try:
             cli = NotPx(SESSIONS_DIR + session_name)
 
+            previous_balance = None  # Track previous balance
+
             def run_painters():
                 asyncio.run(painters(cli, session_name))
 
             def run_mine_claimer():
-                asyncio.run(mine_claimer(cli, session_name))
+                nonlocal previous_balance
+                while True:
+                    # Simulating balance check (replace with actual logic)
+                    current_balance = cli.get_balance(session_name)  # Assuming this function exists
+                    if previous_balance is not None:
+                        points_earned = current_balance - previous_balance
+                        if points_earned > 0:
+                            print(f"[+] {session_name}: {points_earned} Pixel painted successfully.")
+                            if points_earned >= 10:
+                                print(f"BONUS! {points_earned}+ points earned!")
+                    previous_balance = current_balance
+                    time.sleep(3)  # Assuming the script checks every 3 seconds
 
             threading.Thread(target=run_painters).start()
             threading.Thread(target=run_mine_claimer).start()
