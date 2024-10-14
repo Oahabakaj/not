@@ -7,7 +7,6 @@ import nest_asyncio
 from bot.painter import painters  # Assuming bot.painter has the 'painters' function
 from bot.mineclaimer import mine_claimer  # Assuming bot.mineclaimer has the 'mine_claimer' function
 from bot.utils import Colors  # Assuming bot.utils has the 'Colors' class for colored output
-from bot.notpx import NotPx  # Assuming bot.notpx has the 'NotPx' client implementation
 from telethon.sync import TelegramClient  # Telethon client for Telegram interactions
 
 # Apply nest_asyncio to allow nested event loops
@@ -55,11 +54,6 @@ def smooth_print(text, delay=0.05):
 def run_async_in_thread(loop, coro):
     asyncio.set_event_loop(loop)  # Set this thread's event loop
     loop.run_until_complete(coro)
-
-# Function to show the balance of a specific session
-async def show_balance(cli, session_name):
-    balance = await cli.get_balance()
-    print(f"{Colors.BLUE}[+] {session_name} Balance: {balance}{Colors.END}")
 
 # Multithread starter for painters and mining
 def multithread_starter():
@@ -146,12 +140,7 @@ def process():
         elif option == "2":
             multithread_starter()
         elif option == "3":
-            session_name = input("\nEnter Session name to show balance: ")
-            if os.path.exists(SESSIONS_DIR + session_name + ".session"):
-                cli = NotPx(SESSIONS_DIR + session_name)
-                asyncio.run(show_balance(cli, session_name))  # Fetch and display balance
-            else:
-                smooth_print(f"{Colors.RED}[x] Session '{session_name}' does not exist.{Colors.END}")
+            show_balance()
         elif option == "4":
             add_api_credentials()
         elif option == "5":
@@ -167,18 +156,53 @@ def process():
             smooth_print(f"{Colors.RED}[!] Invalid option. Please try again.{Colors.END}")
 
 # NotPx class with the real get_balance method
-
 class NotPx:
     def __init__(self, session_file):
-        # Initialize your session or any required state here
         self.session_file = session_file
+        self.account_status = "active"  # Default status; adjust based on your application's logic
+        self.balance = 0  # Initialize balance
 
     async def get_balance(self):
-        # Replace this with actual logic to fetch balance from the bot's API or database
         await asyncio.sleep(1)  # Simulate network delay
-        return 784.3090041666334  # Replace with real balance fetching logic
+        self.balance = 784.3090041666334  # Replace with actual logic to fetch balance
+        return self.balance
+
+    def accountStatus(self):
+        return self.account_status  # Returns the current status of the account
+
+def show_balance():
+    session_name = input("Enter the session name to check balance: ")
+    session_path = os.path.join(SESSIONS_DIR, f"{session_name}.session")
+    if os.path.exists(session_path):
+        cli = NotPx(session_path)
+        balance = asyncio.run(cli.get_balance())
+        smooth_print(f"{Colors.BLUE}Account Balance for '{session_name}': {balance} {Colors.END}")
+    else:
+        smooth_print(f"{Colors.RED}[!] Session '{session_name}' does not exist.{Colors.END}")
+
+def show_sessions():
+    if not os.path.exists(SESSIONS_DIR) or not os.listdir(SESSIONS_DIR):
+        smooth_print(f"{Colors.RED}[!] No sessions available.{Colors.END}")
+    else:
+        smooth_print(f"{Colors.BLUE}Available sessions:{Colors.END}")
+        for session in os.listdir(SESSIONS_DIR):
+            if session.endswith('.session'):
+                smooth_print(f"- {session[:-8]}")  # Remove .session for display
+
+# Example functions for adding API credentials and resetting sessions (stub functions)
+def add_api_credentials():
+    # Functionality for adding API credentials goes here
+    smooth_print(f"{Colors.YELLOW}[!] Add API credentials functionality not implemented.{Colors.END}")
+
+def reset_api_credentials():
+    # Functionality for resetting API credentials goes here
+    smooth_print(f"{Colors.YELLOW}[!] Reset API credentials functionality not implemented.{Colors.END}")
+
+def reset_session():
+    # Functionality for resetting sessions goes here
+    smooth_print(f"{Colors.YELLOW}[!] Reset session functionality not implemented.{Colors.END}")
 
 if __name__ == "__main__":
     if not os.path.exists(SESSIONS_DIR):
         os.mkdir(SESSIONS_DIR)
-    process()
+    process()  # Start the main menu process
