@@ -9,7 +9,6 @@ from bot.mineclaimer import mine_claimer  # Assuming bot.mineclaimer has the 'mi
 from bot.utils import Colors  # Assuming bot.utils has the 'Colors' class for colored output
 from bot.notpx import NotPx  # Assuming bot.notpx has the 'NotPx' client implementation
 from telethon.sync import TelegramClient  # Telethon client for Telegram interactions
-from datetime import datetime
 
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
@@ -57,6 +56,11 @@ def run_async_in_thread(loop, coro):
     asyncio.set_event_loop(loop)  # Set this thread's event loop
     loop.run_until_complete(coro)
 
+# Function to show the balance of a specific session
+async def show_balance(cli, session_name):
+    balance = await cli.get_balance()
+    print(f"{Colors.BLUE}[+] {session_name} Balance: {balance}{Colors.END}")
+
 # Multithread starter for painters and mining
 def multithread_starter():
     smooth_print(Colors.YELLOW + "Starting script..." + Colors.END)
@@ -78,8 +82,8 @@ def multithread_starter():
             async def run_mine_claimer():
                 nonlocal previous_balance
                 while True:
-                    # Simulating balance check (replace with actual logic)
-                    current_balance = cli.get_balance(session_name)  # Assuming this function exists
+                    # Fetch the real balance
+                    current_balance = await cli.get_balance()  # Now using the async method
                     if previous_balance is not None:
                         points_earned = current_balance - previous_balance
                         if points_earned > 0:
@@ -116,11 +120,12 @@ def process():
         print("\n" + Colors.BLUE + "Main Menu:" + Colors.END)
         print("1. Add Account Session")
         print("2. Start Mine + Claim")
-        print("3. Add API ID and Hash")
-        print("4. Reset API Credentials")
-        print("5. Reset Session")
-        print("6. Show Available Sessions")
-        print("7. Exit")
+        print("3. Show Account Balance")
+        print("4. Add API ID and Hash")
+        print("5. Reset API Credentials")
+        print("6. Reset Session")
+        print("7. Show Available Sessions")
+        print("8. Exit")
         
         option = input(Colors.YELLOW + "Enter your choice: " + Colors.END)
 
@@ -141,18 +146,37 @@ def process():
         elif option == "2":
             multithread_starter()
         elif option == "3":
-            add_api_credentials()
+            session_name = input("\nEnter Session name to show balance: ")
+            if os.path.exists(SESSIONS_DIR + session_name + ".session"):
+                cli = NotPx(SESSIONS_DIR + session_name)
+                asyncio.run(show_balance(cli, session_name))  # Fetch and display balance
+            else:
+                smooth_print(f"{Colors.RED}[x] Session '{session_name}' does not exist.{Colors.END}")
         elif option == "4":
-            reset_api_credentials()
+            add_api_credentials()
         elif option == "5":
-            reset_session()
+            reset_api_credentials()
         elif option == "6":
-            show_sessions()
+            reset_session()
         elif option == "7":
+            show_sessions()
+        elif option == "8":
             smooth_print("Exiting...")
             break
         else:
             smooth_print(f"{Colors.RED}[!] Invalid option. Please try again.{Colors.END}")
+
+# NotPx class with the real get_balance method
+
+class NotPx:
+    def __init__(self, session_file):
+        # Initialize your session or any required state here
+        self.session_file = session_file
+
+    async def get_balance(self):
+        # Replace this with actual logic to fetch balance from the bot's API or database
+        await asyncio.sleep(1)  # Simulate network delay
+        return 784.3090041666334  # Replace with real balance fetching logic
 
 if __name__ == "__main__":
     if not os.path.exists(SESSIONS_DIR):
