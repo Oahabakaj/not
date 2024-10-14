@@ -6,7 +6,6 @@ import asyncio
 import json
 
 class Colors:
-    # Source: https://gist.github.com/rene-d/9e584a7dd2935d0f461904b9f2950007
     """ ANSI color codes """
     BLACK = "\033[0;30m"
     RED = "\033[0;31m"
@@ -32,13 +31,14 @@ class Colors:
     NEGATIVE = "\033[7m"
     CROSSED = "\033[9m"
     END = "\033[0m"
-    # cancel SGR codes if we don't write to a terminal
+
+    # Handle terminal compatibility
     if not __import__("sys").stdout.isatty():
         for _ in dir():
             if isinstance(_, str) and _[0] != "_":
                 locals()[_] = ""
     else:
-        # set Windows console in VT mode
+        # Set Windows console in VT mode
         if __import__("platform").system() == "Windows":
             kernel32 = __import__("ctypes").windll.kernel32
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
@@ -47,27 +47,39 @@ class Colors:
 async def night_sleep():
     iran_tz = pytz.timezone(config.TIMEZONE)  # Use the timezone from config.py
     now = datetime.datetime.now(iran_tz)
-    
+
     if 0 <= now.hour < 2:  
         sleep_duration = random.randint(7, 10)
         print(f"[!] It's currently {now.strftime('%H:%M')} in {config.TIMEZONE}. Sleeping for {sleep_duration} hours...")
         await asyncio.sleep(sleep_duration * 3600)  # Use asyncio.sleep for non-blocking sleep
     else:
         print(f"[!] It's {now.strftime('%H:%M')} in {config.TIMEZONE}. Continuing script...")
+
 def load_data_from_json(file_path):
-    with open(file_path, 'r') as file:
-        return json.load(file)
-def calc_id(x: int, y: int, x1: int, y1: int):
+    """ Load data from a JSON file and return it as a dictionary. """
+    try:
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"[!] Error: The file '{file_path}' was not found.")
+        return {}
+    except json.JSONDecodeError:
+        print(f"[!] Error: Could not decode JSON from the file '{file_path}'.")
+        return {}
+
+def calc_id(x: int, y: int, x1: int, y1: int) -> int:
+    """ Calculate a unique pixel ID based on given coordinates. """
     px_id = random.randint(min(y, y1), max(y1, y)) * 1000
     px_id += random.randint(min(x, x1), max(x1, x)) + 1
-    # print(px_id)
     return px_id
+
 def select_random_pixel(data):
-    paint = random.choice(data['data'])
+    """ Select a random pixel and its color from the given data. """
+    paint = random.choice(data.get('data', []))
     color = paint['color']
     random_cor = random.choice(paint['cordinates'])
-    # print(f"{color}: {random_cor}")
     px_id = calc_id(random_cor['start'][0], random_cor['start'][1], random_cor['end'][0], random_cor['end'][1])
 
     # Return the selected pixel and its color
     return color, px_id
+              
