@@ -164,6 +164,7 @@ class NotPx:
 
     async def get_balance(self):
         await asyncio.sleep(1)  # Simulate network delay
+        # Here you should implement the actual balance fetching logic
         self.balance = 784.3090041666334  # Replace with actual logic to fetch balance
         return self.balance
 
