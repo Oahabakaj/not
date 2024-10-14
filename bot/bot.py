@@ -28,8 +28,7 @@ def load_api_credentials():
     if os.path.exists(env_path):
         with open(env_path, 'r') as f:
             lines = f.readlines()
-            api_id = None
-            api_hash = None
+            api_id = api_hash = None
             for line in lines:
                 if line.startswith('API_ID='):
                     api_id = line.split('=')[1].strip()
@@ -55,18 +54,34 @@ def run_async_in_thread(loop, coro):
     asyncio.set_event_loop(loop)  # Set this thread's event loop
     loop.run_until_complete(coro)
 
+# NotPx class with the real get_balance method
+class NotPx:
+    def __init__(self, session_file):
+        self.session_file = session_file
+        self.account_status = "active"  # Default status; adjust based on your application's logic
+        self.balance = 0  # Initialize balance
+
+    async def get_balance(self):
+        await asyncio.sleep(1)  # Simulate network delay
+        # Here you should implement the actual balance fetching logic
+        self.balance = 784.3090041666334  # Replace with actual logic to fetch balance
+        return self.balance
+
+    def accountStatus(self):
+        return self.account_status  # Returns the current status of the account
+
 # Multithread starter for painters and mining
 def multithread_starter():
     smooth_print(Colors.YELLOW + "Starting script..." + Colors.END)
+
     if not os.path.exists(SESSIONS_DIR):
         os.mkdir(SESSIONS_DIR)
-    dirs = os.listdir(SESSIONS_DIR)
-    sessions = list(filter(lambda x: x.endswith(".session"), dirs))
-    sessions = list(map(lambda x: x.split(".session")[0], sessions))
+
+    sessions = [f.split(".session")[0] for f in os.listdir(SESSIONS_DIR) if f.endswith(".session")]
 
     for session_name in sessions:
         try:
-            cli = NotPx(SESSIONS_DIR + session_name)
+            cli = NotPx(os.path.join(SESSIONS_DIR, session_name))
 
             previous_balance = None  # Track previous balance
 
@@ -76,13 +91,12 @@ def multithread_starter():
             async def run_mine_claimer():
                 nonlocal previous_balance
                 while True:
-                    # Fetch the real balance
                     current_balance = await cli.get_balance()  # Now using the async method
                     if previous_balance is not None:
                         points_earned = current_balance - previous_balance
                         if points_earned > 0:
-                            # Use the print_auto_remove function for the red message
-                            threading.Thread(target=print_auto_remove, args=(f"{Colors.GREEN}[+] {session_name}: {points_earned} Pixel painted successfully.{Colors.END}", 15)).start()
+                            threading.Thread(target=print_auto_remove,
+                                             args=(f"{Colors.GREEN}[+] {session_name}: {points_earned} Pixel painted successfully.{Colors.END}", 15)).start()
                             if points_earned >= 10:
                                 smooth_print(f"{Colors.CYAN}BONUS! {points_earned}+ points earned!{Colors.END}")
                     previous_balance = current_balance
@@ -124,19 +138,7 @@ def process():
         option = input(Colors.YELLOW + "Enter your choice: " + Colors.END)
 
         if option == "1":
-            name = input("\nEnter Session name: ")
-            if not os.path.exists(SESSIONS_DIR):
-                os.mkdir(SESSIONS_DIR)
-            if not any(name in i for i in os.listdir(SESSIONS_DIR)):
-                api_id, api_hash = load_api_credentials()
-                if api_id and api_hash:
-                    client = TelegramClient(SESSIONS_DIR + name, api_id, api_hash).start()
-                    client.disconnect()
-                    smooth_print(f"{Colors.GREEN}[+] Session '{name}' saved successfully.{Colors.END}")
-                else:
-                    smooth_print(f"{Colors.RED}[!] API credentials not found. Please add them first.{Colors.END}")
-            else:
-                smooth_print(f"{Colors.RED}[x] Session '{name}' already exists.{Colors.END}")
+            add_account_session()
         elif option == "2":
             multithread_starter()
         elif option == "3":
@@ -155,21 +157,20 @@ def process():
         else:
             smooth_print(f"{Colors.RED}[!] Invalid option. Please try again.{Colors.END}")
 
-# NotPx class with the real get_balance method
-class NotPx:
-    def __init__(self, session_file):
-        self.session_file = session_file
-        self.account_status = "active"  # Default status; adjust based on your application's logic
-        self.balance = 0  # Initialize balance
-
-    async def get_balance(self):
-        await asyncio.sleep(1)  # Simulate network delay
-        # Here you should implement the actual balance fetching logic
-        self.balance = 784.3090041666334  # Replace with actual logic to fetch balance
-        return self.balance
-
-    def accountStatus(self):
-        return self.account_status  # Returns the current status of the account
+def add_account_session():
+    name = input("\nEnter Session name: ")
+    if not os.path.exists(SESSIONS_DIR):
+        os.mkdir(SESSIONS_DIR)
+    if not any(name in i for i in os.listdir(SESSIONS_DIR)):
+        api_id, api_hash = load_api_credentials()
+        if api_id and api_hash:
+            client = TelegramClient(os.path.join(SESSIONS_DIR, name), api_id, api_hash).start()
+            client.disconnect()
+            smooth_print(f"{Colors.GREEN}[+] Session '{name}' saved successfully.{Colors.END}")
+        else:
+            smooth_print(f"{Colors.RED}[!] API credentials not found. Please add them first.{Colors.END}")
+    else:
+        smooth_print(f"{Colors.RED}[x] Session '{name}' already exists.{Colors.END}")
 
 def show_balance():
     session_name = input("Enter the session name to check balance: ")
@@ -190,7 +191,6 @@ def show_sessions():
             if session.endswith('.session'):
                 smooth_print(f"- {session[:-8]}")  # Remove .session for display
 
-# Example functions for adding API credentials and resetting sessions (stub functions)
 def add_api_credentials():
     # Functionality for adding API credentials goes here
     smooth_print(f"{Colors.YELLOW}[!] Add API credentials functionality not implemented.{Colors.END}")
