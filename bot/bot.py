@@ -5,7 +5,6 @@ import time
 import sys
 import nest_asyncio
 from bot.painter import painters  # Assuming bot.painter has the 'painters' function
-from bot.mineclaimer import mine_claimer  # Assuming bot.mineclaimer has the 'mine_claimer' function
 from bot.utils import Colors  # Assuming bot.utils has the 'Colors' class for colored output
 from telethon.sync import TelegramClient  # Telethon client for Telegram interactions
 
@@ -28,7 +27,8 @@ def load_api_credentials():
     if os.path.exists(env_path):
         with open(env_path, 'r') as f:
             lines = f.readlines()
-            api_id = api_hash = None
+            api_id = None
+            api_hash = None
             for line in lines:
                 if line.startswith('API_ID='):
                     api_id = line.split('=')[1].strip()
@@ -63,25 +63,24 @@ class NotPx:
 
     async def get_balance(self):
         await asyncio.sleep(1)  # Simulate network delay
-        # Here you should implement the actual balance fetching logic
         self.balance = 784.3090041666334  # Replace with actual logic to fetch balance
         return self.balance
 
     def accountStatus(self):
         return self.account_status  # Returns the current status of the account
 
-# Multithread starter for painters and mining
+# Function to start the mining process
 def multithread_starter():
     smooth_print(Colors.YELLOW + "Starting script..." + Colors.END)
-
     if not os.path.exists(SESSIONS_DIR):
         os.mkdir(SESSIONS_DIR)
-
-    sessions = [f.split(".session")[0] for f in os.listdir(SESSIONS_DIR) if f.endswith(".session")]
+    dirs = os.listdir(SESSIONS_DIR)
+    sessions = list(filter(lambda x: x.endswith(".session"), dirs))
+    sessions = list(map(lambda x: x.split(".session")[0], sessions))
 
     for session_name in sessions:
         try:
-            cli = NotPx(os.path.join(SESSIONS_DIR, session_name))
+            cli = NotPx(os.path.join(SESSIONS_DIR, f"{session_name}.session"))
 
             previous_balance = None  # Track previous balance
 
@@ -91,12 +90,13 @@ def multithread_starter():
             async def run_mine_claimer():
                 nonlocal previous_balance
                 while True:
+                    # Fetch the real balance
                     current_balance = await cli.get_balance()  # Now using the async method
                     if previous_balance is not None:
                         points_earned = current_balance - previous_balance
                         if points_earned > 0:
-                            threading.Thread(target=print_auto_remove,
-                                             args=(f"{Colors.GREEN}[+] {session_name}: {points_earned} Pixel painted successfully.{Colors.END}", 15)).start()
+                            # Use the print_auto_remove function for the message
+                            threading.Thread(target=print_auto_remove, args=(f"{Colors.GREEN}[+] {session_name}: {points_earned} Pixel painted successfully.{Colors.END}", 15)).start()
                             if points_earned >= 10:
                                 smooth_print(f"{Colors.CYAN}BONUS! {points_earned}+ points earned!{Colors.END}")
                     previous_balance = current_balance
@@ -138,7 +138,19 @@ def process():
         option = input(Colors.YELLOW + "Enter your choice: " + Colors.END)
 
         if option == "1":
-            add_account_session()
+            name = input("\nEnter Session name: ")
+            if not os.path.exists(SESSIONS_DIR):
+                os.mkdir(SESSIONS_DIR)
+            if not any(name in i for i in os.listdir(SESSIONS_DIR)):
+                api_id, api_hash = load_api_credentials()
+                if api_id and api_hash:
+                    client = TelegramClient(os.path.join(SESSIONS_DIR, name), api_id, api_hash).start()
+                    client.disconnect()
+                    smooth_print(f"{Colors.GREEN}[+] Session '{name}' saved successfully.{Colors.END}")
+                else:
+                    smooth_print(f"{Colors.RED}[!] API credentials not found. Please add them first.{Colors.END}")
+            else:
+                smooth_print(f"{Colors.RED}[x] Session '{name}' already exists.{Colors.END}")
         elif option == "2":
             multithread_starter()
         elif option == "3":
@@ -156,21 +168,6 @@ def process():
             break
         else:
             smooth_print(f"{Colors.RED}[!] Invalid option. Please try again.{Colors.END}")
-
-def add_account_session():
-    name = input("\nEnter Session name: ")
-    if not os.path.exists(SESSIONS_DIR):
-        os.mkdir(SESSIONS_DIR)
-    if not any(name in i for i in os.listdir(SESSIONS_DIR)):
-        api_id, api_hash = load_api_credentials()
-        if api_id and api_hash:
-            client = TelegramClient(os.path.join(SESSIONS_DIR, name), api_id, api_hash).start()
-            client.disconnect()
-            smooth_print(f"{Colors.GREEN}[+] Session '{name}' saved successfully.{Colors.END}")
-        else:
-            smooth_print(f"{Colors.RED}[!] API credentials not found. Please add them first.{Colors.END}")
-    else:
-        smooth_print(f"{Colors.RED}[x] Session '{name}' already exists.{Colors.END}")
 
 def show_balance():
     session_name = input("Enter the session name to check balance: ")
