@@ -8,75 +8,20 @@ from bot.utils import Colors  # Assuming bot.utils has the 'Colors' class for co
 from bot.notpx import NotPx  # Assuming bot.notpx has the 'NotPx' client implementation
 from telethon.sync import TelegramClient  # Telethon client for Telegram interactions
 from datetime import datetime
+import sys
 
 # File structure for sessions
 SESSIONS_DIR = "sessions/"
 
-# Function to list available sessions
-def show_sessions():
-    if not os.path.exists(SESSIONS_DIR):
-        os.mkdir(SESSIONS_DIR)
-    sessions = [f for f in os.listdir(SESSIONS_DIR) if f.endswith(".session")]
-    if not sessions:
-        print("[!] No sessions found.")
-    else:
-        print("Available sessions:")
-        for i, session in enumerate(sessions, 1):
-            print(f"{i}. {session[:-8]}")  # Display session name without .session extension
+# Function to manage printing and auto-removal of messages
+def print_auto_remove(message, duration=15):
+    sys.stdout.write(f"{message}\n")
+    sys.stdout.flush()
+    time.sleep(duration)
+    sys.stdout.write("\r" + " " * len(message) + "\r")  # Clear the line
+    sys.stdout.flush()
 
-# Function to add API credentials to env.txt file
-def add_api_credentials():
-    api_id = input("Enter API ID: ")
-    api_hash = input("Enter API Hash: ")
-    env_path = os.path.join(os.path.dirname(__file__), 'env.txt')
-    with open(env_path, "w") as f:
-        f.write(f"API_ID={api_id}\n")
-        f.write(f"API_HASH={api_hash}\n")
-    print("[+] API credentials saved successfully in env.txt file.")
-
-# Function to reset API credentials
-def reset_api_credentials():
-    env_path = os.path.join(os.path.dirname(__file__), 'env.txt')
-    if os.path.exists(env_path):
-        os.remove(env_path)
-        print("[+] API credentials reset successfully.")
-    else:
-        print("[!] No env.txt file found. Nothing to reset.")
-
-# Function to reset a specific session
-def reset_session():
-    if not os.path.exists(SESSIONS_DIR):
-        os.mkdir(SESSIONS_DIR)
-    sessions = [f for f in os.listdir(SESSIONS_DIR) if f.endswith(".session")]
-    if not sessions:
-        print("[!] No sessions found.")
-        return
-    print("Available sessions:")
-    for i, session in enumerate(sessions, 1):
-        print(f"{i}. {session[:-8]}")
-    choice = input("Enter the number of the session to reset: ")
-    try:
-        session_to_reset = sessions[int(choice) - 1]
-        os.remove(os.path.join(SESSIONS_DIR, session_to_reset))
-        print(f"[+] Session {session_to_reset[:-8]} reset successfully.")
-    except (ValueError, IndexError):
-        print("[!] Invalid choice. Please try again.")
-
-# Function to load API credentials from env.txt file
-def load_api_credentials():
-    env_path = os.path.join(os.path.dirname(__file__), 'env.txt')
-    if os.path.exists(env_path):
-        with open(env_path, 'r') as f:
-            lines = f.readlines()
-            api_id = None
-            api_hash = None
-            for line in lines:
-                if line.startswith('API_ID='):
-                    api_id = line.split('=')[1].strip()
-                elif line.startswith('API_HASH='):
-                    api_hash = line.split('=')[1].strip()
-            return api_id, api_hash
-    return None, None
+# Existing functions...
 
 # Multithread starter for painters and mining
 def multithread_starter():
@@ -104,7 +49,8 @@ def multithread_starter():
                     if previous_balance is not None:
                         points_earned = current_balance - previous_balance
                         if points_earned > 0:
-                            print(f"[+] {session_name}: {points_earned} Pixel painted successfully.")
+                            # Use the print_auto_remove function for the red message
+                            threading.Thread(target=print_auto_remove, args=(f"[+] {session_name}: {points_earned} Pixel painted successfully.", 15)).start()
                             if points_earned >= 10:
                                 print(f"BONUS! {points_earned}+ points earned!")
                     previous_balance = current_balance
@@ -172,4 +118,4 @@ if __name__ == "__main__":
     if not os.path.exists(SESSIONS_DIR):
         os.mkdir(SESSIONS_DIR)
     process()
-    
+                
