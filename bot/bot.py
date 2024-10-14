@@ -54,6 +54,16 @@ def run_async_in_thread(loop, coro):
     asyncio.set_event_loop(loop)  # Set this thread's event loop
     loop.run_until_complete(coro)
 
+# Function to execute with retries
+async def execute_with_retries(func, *args, retries=3):
+    for attempt in range(retries):
+        try:
+            return await func(*args)
+        except Exception as e:
+            if attempt == retries - 1:
+                raise e
+            time.sleep(2)  # Wait before retrying
+
 # NotPx class with the real get_balance method
 class NotPx:
     def __init__(self, session_file):
@@ -90,17 +100,19 @@ def multithread_starter():
             async def run_mine_claimer():
                 nonlocal previous_balance
                 while True:
-                    # Fetch the real balance
-                    current_balance = await cli.get_balance()  # Now using the async method
-                    if previous_balance is not None:
-                        points_earned = current_balance - previous_balance
-                        if points_earned > 0:
-                            # Use the print_auto_remove function for the message
-                            threading.Thread(target=print_auto_remove, args=(f"{Colors.GREEN}[+] {session_name}: {points_earned} Pixel painted successfully.{Colors.END}", 15)).start()
-                            if points_earned >= 10:
-                                smooth_print(f"{Colors.CYAN}BONUS! {points_earned}+ points earned!{Colors.END}")
-                    previous_balance = current_balance
-                    await asyncio.sleep(3)  # Assuming the script checks every 3 seconds
+                    try:
+                        # Fetch the real balance with retries
+                        current_balance = await execute_with_retries(cli.get_balance)
+                        if previous_balance is not None:
+                            points_earned = current_balance - previous_balance
+                            if points_earned > 0:
+                                threading.Thread(target=print_auto_remove, args=(f"{Colors.GREEN}[+] {session_name}: {points_earned} Pixel painted successfully.{Colors.END}", 15)).start()
+                                if points_earned >= 10:
+                                    smooth_print(f"{Colors.CYAN}BONUS! {points_earned}+ points earned!{Colors.END}")
+                        previous_balance = current_balance
+                        await asyncio.sleep(3)  # Assuming the script checks every 3 seconds
+                    except Exception as e:
+                        smooth_print(f"{Colors.RED}[!] Error fetching balance for '{session_name}', error: {e}{Colors.END}")
 
             # Create new event loops for both threads
             painter_loop = asyncio.new_event_loop()
