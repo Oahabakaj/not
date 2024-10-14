@@ -3,6 +3,7 @@ import threading
 import asyncio
 import time
 import sys
+import nest_asyncio
 from bot.painter import painters  # Assuming bot.painter has the 'painters' function
 from bot.mineclaimer import mine_claimer  # Assuming bot.mineclaimer has the 'mine_claimer' function
 from bot.utils import Colors  # Assuming bot.utils has the 'Colors' class for colored output
@@ -10,7 +11,9 @@ from bot.notpx import NotPx  # Assuming bot.notpx has the 'NotPx' client impleme
 from telethon.sync import TelegramClient  # Telethon client for Telegram interactions
 from datetime import datetime
 
-# File structure for sessions
+# Apply nest_asyncio to allow nested event loops
+nest_asyncio.apply()
+
 SESSIONS_DIR = "sessions/"
 
 # Function to manage printing and auto-removal of messages
@@ -49,6 +52,11 @@ def smooth_print(text, delay=0.05):
         time.sleep(delay)
     print()  # Move to the next line after finishing
 
+# Create new event loops for each async task
+def run_async_in_thread(loop, coro):
+    asyncio.set_event_loop(loop)  # Set this thread's event loop
+    loop.run_until_complete(coro)
+
 # Multithread starter for painters and mining
 def multithread_starter():
     smooth_print(Colors.YELLOW + "Starting script..." + Colors.END)
@@ -64,10 +72,10 @@ def multithread_starter():
 
             previous_balance = None  # Track previous balance
 
-            def run_painters():
-                asyncio.run(painters(cli, session_name))
+            async def run_painters():
+                await painters(cli, session_name)
 
-            def run_mine_claimer():
+            async def run_mine_claimer():
                 nonlocal previous_balance
                 while True:
                     # Simulating balance check (replace with actual logic)
@@ -80,10 +88,15 @@ def multithread_starter():
                             if points_earned >= 10:
                                 smooth_print(f"{Colors.CYAN}BONUS! {points_earned}+ points earned!{Colors.END}")
                     previous_balance = current_balance
-                    time.sleep(3)  # Assuming the script checks every 3 seconds
+                    await asyncio.sleep(3)  # Assuming the script checks every 3 seconds
 
-            threading.Thread(target=run_painters).start()
-            threading.Thread(target=run_mine_claimer).start()
+            # Create new event loops for both threads
+            painter_loop = asyncio.new_event_loop()
+            claimer_loop = asyncio.new_event_loop()
+
+            threading.Thread(target=run_async_in_thread, args=(painter_loop, run_painters())).start()
+            threading.Thread(target=run_async_in_thread, args=(claimer_loop, run_mine_claimer())).start()
+
         except Exception as e:
             smooth_print(f"{Colors.RED}[!] Error loading session '{session_name}', error: {e}{Colors.END}")
 
@@ -145,4 +158,3 @@ if __name__ == "__main__":
     if not os.path.exists(SESSIONS_DIR):
         os.mkdir(SESSIONS_DIR)
     process()
-                    
